@@ -27,11 +27,15 @@ The two agents are **not optional**. `cqi-flashcard` halts at step 3a and again 
 
 ## Install
 
+This repo is private. You need to have been added as a collaborator, and you need `git` authenticated against your own GitHub account — `gh auth login` if you have the GitHub CLI, otherwise an SSH key or a personal access token.
+
 ```bash
-git clone <repo-url> ~/science-squad-skills
+git clone https://github.com/leander-sme/science-squad-skills.git ~/science-squad-skills
 cd ~/science-squad-skills
 ./install.sh
 ```
+
+If the clone comes back `Repository not found`, that is almost always an access problem rather than a missing repo — GitHub returns 404 rather than 403 for a private repo you cannot see. Check you have been invited, and that `git` is authenticated as *you*.
 
 Then restart Claude Code and check it registered:
 
