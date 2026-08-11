@@ -61,12 +61,12 @@ The skill's own *What you need before your first run* table is the authority —
 | You need | For |
 |---|---|
 | **`sme-content` MCP** | Fetching sets, cards and revision notes. Nothing works without it |
-| **`google-workspace` MCP** | Writing the course QA sheet |
 | **`notebooklm` MCP** | The syllabus authority behind every scope, coverage and tier claim |
-| **Drive access to `DE Science / CQI Scorecards /`** | Where course sheets live. Ask Leander |
 | **The course's PP Checker notebook** | [Registry on Notion](https://www.notion.so/save-my-exams/PP-Checkers-293847b30a5f80488aa5c382bdfd85b9). No notebook for your course? `/pp-checker` builds one |
 
-The Development Editor Obsidian vault is **not** required. It gives you a second index over the results; the Google Sheet is the record. The skill says where the vault step is optional.
+The review writes a Markdown report to a **`CQI Reports`** folder in your home folder — one file per review, and that file is the record. Nothing is logged centrally: what gets recorded against a set is a **pass or a fail**, not a score, and the score exists to tell you how much editing gets you there.
+
+The Development Editor Obsidian vault is **not** required. It gives you a second index over the report. The skill says where the vault step is optional.
 
 ---
 
@@ -83,9 +83,9 @@ A single set is about half an hour. A course sweep is a few hours and 80–120k 
 
 ## cqi-flashcard — two things that surprise people
 
-**It never edits anything.** Not Cobalt, not a typo it passes on the way. A review produces findings, scores and a paste-ready fix list, and stops. Most sets in the estate are published, so an edit goes live immediately and lands in every course referencing the set — and the fix is the author's to make. A review that ends in a write is a review that went wrong.
+**It never edits anything** — including when the set is your own. Not Cobalt, not a typo it passes on the way. A review produces findings, scores and a paste-ready fix list, and stops. Most sets in the estate are published, so an edit goes live immediately and lands in every course referencing the set. Then you edit, as a separate deliberate pass: a reviewer who fixes as they read stops reviewing, and the set comes out passing because it was edited rather than because it was good.
 
-**It never stops to ask.** Anything you cannot settle gets scored on your best call and parked on a `Queries` tab, with what changes if Leander overturns you. She reads the tab once at the end. Only four stops are permitted in a whole review, and the skill names them. If your run came back with questions in it, it did not follow the skill.
+**It never stops to ask.** Anything you cannot settle gets scored on your best call and parked in the report's `Queries` section, with what changes if Leander overturns you. She reads that section once at the end. Only three stops are permitted in a whole review, and the skill names them. If your run came back with questions in it, it did not follow the skill.
 
 ---
 
@@ -109,8 +109,16 @@ apply my dream decisions        # after you've saved your choices
 Reports land in a **`Dream Reports`** folder in your home folder.
 
 **Prerequisite:** it writes to Claude's memory files at `~/.claude/projects/<project>/memory/`
-with a `MEMORY.md` index alongside them. If you have never used Claude's memory, there is
-nothing yet for it to read or add to — ask Leander to walk you through starting one.
+with a `MEMORY.md` index alongside them. Check with:
+
+```bash
+ls ~/.claude/projects/*/memory/MEMORY.md
+```
+
+If nothing comes back you have no memory yet, and `dream` has nothing to read or add to.
+Start one by telling Claude to remember something — *"remember that I work on Edexcel
+GCSE Physics"* — which creates the directory and the index. One fact is enough; `dream`
+takes it from there.
 
 **To make it run on its own** (macOS, optional):
 

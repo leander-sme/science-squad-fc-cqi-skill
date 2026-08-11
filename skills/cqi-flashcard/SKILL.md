@@ -1,6 +1,6 @@
 ---
 name: cqi-flashcard
-description: Run a CQI review on a Cobalt flashcard set — score against the 10 criteria, ground against the revision note, and log the findings to the course QA sheet. Report-only, never edits.
+description: Run a CQI review on a Cobalt flashcard set — score against the 10 criteria, ground against the revision note, and produce a scored report and fix list. Report-only, never edits.
 user_invocable: true
 arguments: "[flst_… | subtopic name | course + topic]"
 ---
@@ -11,28 +11,31 @@ Review a flashcard set against the 10 CQI criteria. Produce findings, a score an
 
 ## New to this skill? Read this first
 
-**What it does.** Given a flashcard set ID — or a course, for a sampled sweep — it scores each set out of 50 against the CQI criteria, grounds every spec claim against the syllabus, writes the findings to the course QA sheet, and identifies **author themes**: defects that recur across everything one author has made. The themes are the point. A fix list mends one set; a theme prompt lets an author sweep their whole back catalogue.
+**What it does.** Given a flashcard set ID — or a course, for a sampled sweep — it scores each set out of 50 against the CQI criteria, grounds every spec claim against the syllabus, writes a report with a paste-ready fix list, and identifies **author themes**: defects that recur across everything one author has made. The themes are the point. A fix list mends one set; a theme prompt lets an author sweep their whole back catalogue.
 
-**Roughly how a run goes.** Resolve the set → size the sample if it is a course sweep → open the syllabus notebook → fetch cards → check them against the revision note → send the spec claims to `spec-grounder` → score → write to the sheet → run `cqi-verifier` → report themes. On a single set that is about half an hour. A course sweep is a few hours and a lot of tokens.
+**Roughly how a run goes.** Resolve the set → size the sample if it is a course sweep → open the syllabus notebook → fetch cards → check them against the revision note → send the spec claims to `spec-grounder` → score → write the report → run `cqi-verifier` → report themes. On a single set that is about half an hour. A course sweep is a few hours and a lot of tokens.
+
+> [!info] 🎯 You are most likely reviewing your own set
+> The Development Editor no longer runs flashcard CQIs centrally — **authors run this skill on their own sets**. The score is the thing you work to: review, get the number, edit until it passes. Nothing is logged to a central record; the verdict that gets recorded is a **pass or a fail**, not a score.
+>
+> That does not soften the report-only rule below, and the reason is worth understanding. **Review first, edit second, and never in the same pass.** A reviewer who fixes as they read stops reviewing — they score the card they have just mended rather than the card the student saw, and the set comes out passing because it was edited, not because it was good. Finish the review, close it, *then* open a fresh pass and act on the fix list.
 
 **Two habits that are unlike most skills, and both are deliberate:**
 
 - **It never edits anything.** Not Cobalt, not a typo. See the report-only box below — it is the rule the whole skill is built around.
-- **It never stops to ask.** Uncertainty gets scored on your best call and parked on a `Queries` tab for Leander to read at the end. Only four stops are permitted in a whole review; they are listed below.
+- **It never stops to ask.** Uncertainty gets scored on your best call and parked in a `Queries` section for Leander to read at the end. Only three stops are permitted in a whole review; they are listed below.
 
 > [!info] 👥 Who is who in this document
 > **You** are the reviewer running the skill — anyone in the Science Squad.
-> **Leander** is the CQI owner. Where this document says a call is "Leander's alone", it means exactly that: you score your best reading, park it on `Queries`, and she decides. Do not read it as "the reviewer's discretion" — those calls are the ones deliberately taken out of the reviewer's hands, so that a review is repeatable between people.
+> **Leander** is the CQI owner. Where this document says a call is "Leander's alone", it means exactly that: you score your best reading, park it under `Queries`, and she decides. Do not read it as "the reviewer's discretion" — those calls are the ones deliberately taken out of the reviewer's hands, so that a review is repeatable between people. Send her the `Queries` section when the review is done; do not wait on it before finishing.
 
 ### What you need before your first run
 
 | Requirement | Why | If you don't have it |
 |---|---|---|
 | **`sme-content` MCP** | `getFlashcardSet`, `findRevisionNote`, `getCourseStructure` | Nothing works. Get it connected first |
-| **`google-workspace` MCP** | Writing the course QA sheet | You can score but not log |
 | **`notebooklm` MCP** | The syllabus authority for every spec claim | Step 1b tells you how to run *fenced* — but say so in the report |
 | **`spec-grounder` + `cqi-verifier` agents** | Two mandatory gates, steps 3a and 6 | Install them from `agents/` in this repo — see the README |
-| **Access to `DE Science / CQI Scorecards /`** in Drive | Where course sheets live (step 5) | Ask Leander |
 | **The course's PP Checker notebook** | Step 1b | Registry: [PP Checkers on Notion](https://www.notion.so/save-my-exams/PP-Checkers-293847b30a5f80488aa5c382bdfd85b9). If the course has none, `/pp-checker` builds one |
 
 ### Proposing a change to this skill
@@ -47,19 +50,18 @@ It is shared now, so a ruling you are given mid-run **is not yours to write stra
 > Most sets in the estate are **published**. An edit goes live immediately and lands in **every** course referencing the set.
 
 > [!danger] 🅿️ Never ask mid-run — park it *(Leander, 30 July 2026)*
-> **A CQI is a half-hour job. It stops being one the moment the reviewer needs Leander in the loop to finish a set.** Every uncertainty that surfaces mid-run gets **scored on your best call and written to the `Queries` tab** — it never becomes a question in chat, and it never halts the batch.
+> **A CQI is a half-hour job. It stops being one the moment the reviewer needs Leander in the loop to finish a set.** Every uncertainty that surfaces mid-run gets **scored on your best call and written into the `Queries` section** — it never becomes a question in chat, and it never halts the batch.
 >
-> She reads the tab once, at the end, and decides which ones she cares about. Most she will ignore, and that is the correct outcome: the tab exists so that *not deciding* is free. A question in chat costs her a context switch whether or not it mattered.
+> She reads it once, at the end, and decides which ones she cares about. Most she will ignore, and that is the correct outcome: the section exists so that *not deciding* is free. A question in chat costs her a context switch whether or not it mattered.
 >
-> **Four stops are permitted in the whole review, all of them before or after the proofing, none of them inside it:**
+> **Three stops are permitted in the whole review, all of them before or after the proofing, none of them inside it:**
 > 1. the **token go-ahead** before a bulk sweep (step 1a)
 > 2. **no reachable notebook** (step 1b) — it degrades every set, so it is settled before the first card
 > 3. the **stage A hold** on a staged run (step 1a)
-> 4. **which folder** a brand-new course sheet belongs in (step 5) — once per course, at creation
 >
-> **Everything else parks.** Rendering you cannot see, a spec claim the grounder could not settle, a calibration case the table seems to get wrong, a qualification off the staging list, a theme band — all of it is a `Queries` row with your call already in it. See *The Queries tab* in step 5.
+> **Everything else parks.** Rendering you cannot see, a spec claim the grounder could not settle, a calibration case the table seems to get wrong, a qualification off the staging list, a theme band — all of it is a `Queries` entry with your call already in it. See *The Queries section* in step 5.
 >
-> **Rulings are batched to the end of the run, never applied mid-review.** Where Leander's answer to a query would change this skill or the rubric, that is a **post-run edit made once**, after she has ruled on the whole tab — not a skill rewrite between two batches. Collect them under *Rulings needed* in the closing report and raise the survivors in a single PR (see *Proposing a change to this skill* above, which governs *where* a ruling goes and *who* commits it — this box governs *when*).
+> **Rulings are batched to the end of the run, never applied mid-review.** Where Leander's answer to a query would change this skill or the rubric, that is a **post-run edit made once**, after she has ruled on the whole `Queries` section — not a skill rewrite between two batches. Collect them under *Rulings needed* in the closing report and raise the survivors in a single PR (see *Proposing a change to this skill* above, which governs *where* a ruling goes and *who* commits it — this box governs *when*).
 
 ## Before you start
 
@@ -113,11 +115,11 @@ A Level courses carry so many subtopics that a flat 10% is a long run of batches
 This ordering is the whole point. A fresh 5% draw at escalation is not balanced against the first, and a stage A that clustered into three sections tells you nothing about the course — it fails at the one job sampling has, which is surfacing themes across authors. Show both halves in the allocation table, marked A and B, before fetching anything.
 
 > [!danger] 🛑 Stage A ends in a hold, not a decision
-> Score stage A, write it to the sheet in full, report it — **and stop.** Whether to run stage B is **Leander's call and hers alone**, made off the sheet. Never roll straight into stage B because the findings looked bad, and never quietly close the review because they looked clean.
+> Score stage A, write it up in full, report it — **and stop.** Whether to run stage B is **Leander's call and hers alone**, made off that report. Never roll straight into stage B because the findings looked bad, and never quietly close the review because they looked clean.
 
 **Recommend, then wait.** Close the stage A report with a one-line recommendation and the signals behind it. Escalation is worth it where stage B would change what you can *say*, not merely add sets:
 
-- **a set FAILs** — the sample verdict is already settled (S2 is a gate; one fail fails it), but stage B is what tells you whether the fail is one author or the course
+- **a set FAILs** — the sample verdict is already settled (it is a gate; one fail fails it), but stage B is what tells you whether the fail is one author or the course
 - **a defect recurs on two sets by one author** — a theme candidate stage B can promote to a 🔴 sweep, or kill
 - **a defect appears under two different authors** — that is a course-level issue, not author remediation, and the band changes with it. (0654 round 1 read "no science gets bolding right" off one set per science and recommended a house-wide style bulletin; round 2 added a second set each and showed the defect tracked the **author** — one of whom scored 49/50. The round-1 recommendation was the opposite of the right one)
 - **stage A comes back entirely clean** — treat this with suspicion, not relief. All-Pass proves the sample free of *the findings you happened to draft*, not free of defects. Say so plainly rather than presenting it as a clear course
@@ -125,9 +127,9 @@ This ordering is the whole point. A fresh 5% draw at escalation is not balanced 
 Where every finding is isolated to one set and one author and nothing above fires, recommend stopping. That is the case the staging exists for.
 
 > [!warning] ⚠️ A 5% stop must still read as 5% in six months
-> The sheet label carries the stage actually completed — `N sets, 5% of Y subtopics` — and the report says in terms that a clean stage A **clears the sample but is a weaker claim about the course** than a clean 10%. List by name any theme candidate left unresolved by stopping. Otherwise a half review is indistinguishable from a full pass to whoever opens the sheet later.
+> The report's header carries the stage actually completed — `N sets, 5% of Y subtopics` — and says in terms that a clean stage A **clears the sample but is a weaker claim about the course** than a clean 10%. List by name any theme candidate left unresolved by stopping. Otherwise a half review is indistinguishable from a full pass to whoever reads it later.
 
-On escalation, stage B **appends** to the science tab as an ordinary batch (worst first, as always) and the row-2 formulas absorb it with no maintenance. Only the row 2 **label** gets rewritten, to the combined `N sets, 10% of Y subtopics` — a dashboard cell, not a log row, so rewriting it is safe and is the one rewrite this skill permits. (Row 3 was retired 31 Jul 2026; on an older sheet that still has it, leave it alone.)
+On escalation, stage B is written up as an ordinary batch (worst first, as always) and folded into the same report, with the header restated as the combined `N sets, 10% of Y subtopics` and the sample summary recomputed over both halves.
 
 #### Counting the subtopics
 
@@ -243,14 +245,14 @@ Also check the course's **tier structure**. Core/Extended courses (CIE 0654, 062
 
 Collect every draft finding that is really a spec claim — **coverage, scope, tier, command-word demand, and any factual flag whose only evidence is disagreement with the revision note** — and hand the batch to the **`spec-grounder`** agent, passing the `notebook_id` from step 1b. It adjudicates them against the syllabus in NotebookLM and returns UPHELD / WITHDRAWN / UNVERIFIED / UPGRADED with verbatim outcome wording.
 
-**No spec claim may be scored until it has cleared this gate.** A finding the grounder withdraws does not reach the sheet as a defect; a finding it inverts becomes a **new row against the revision note**; a finding it cannot settle is logged **UNVERIFIED** on `Records` and **parked as a `Spec` query** — never asserted, and never raised as a question in chat.
+**No spec claim may be scored until it has cleared this gate.** A finding the grounder withdraws does not reach the report as a defect; a finding it inverts becomes a **new row against the revision note**; a finding it cannot settle is logged **UNVERIFIED** on `Records` and **parked as a `Spec` query** — never asserted, and never raised as a question in chat.
 
 **UNVERIFIED still scores.** Score it as it sits — most often *not* a defect, because an unevidenced flag is not a finding — and let the `If you overturn` column carry what changes if Leander rules the other way. A run that leaves sets unscored pending adjudication is a run that has not finished.
 
 > [!danger] 🔁 Run it **per batch**, before that batch is written — never once at the end
 > This is the step that slides. On a course sweep it reads like paperwork that can be swept up later, so it gets deferred to the last set and then has to be *asked for* — which means scores were drafted for the whole course against unadjudicated claims, and the grounder is reduced to a rubber stamp over findings that already hardened.
 >
-> **Tie it to the write.** No batch's rows reach the sheet until that batch's spec claims have cleared the grounder. The write already happens per batch, so the gate rides on something that cannot be forgotten — unlike a step that only ends when the reviewer decides it has.
+> **Tie it to the write.** No batch's rows reach the report until that batch's spec claims have cleared the grounder. The write-up already happens per batch, so the gate rides on something that cannot be forgotten — unlike a step that only ends when the reviewer decides it has.
 >
 > The first grounder call is not even in this step: the **tier structure** (step 1a) is a spec claim, so it goes to the notebook before any card is proofed. If the notebook has not been queried by the time the first batch is scored, something has been skipped.
 
@@ -308,7 +310,7 @@ Apply the **two-tier proofing model** from the rubric: **absolute** rules (struc
 >
 > Her words: *"I'd say it's a three because it's moving into a pattern rather than a one-off error."* Count fronts, not Formatted rows — two cosmetic faults on the **same** card is one card, not a pattern. The *kind* of breach is irrelevant: missing and wrongly-present each count as one front. Score it under **Formatted only** — hold Consistent at 5, one defect one criterion.
 >
-> **Never re-derive "the KIND of failure sets the band, not the COUNT."** The 30 July 2026 Edexcel IAL Physics run invented that sentence mid-run, wrote it into the sheet as settled calibration, and failed three sets that should have passed — one of which the same course had already passed a week earlier, manufacturing a fake cross-run conflict. It sounds more principled than counting and is simply wrong. **If the mapping seems wrong for a case, score it by the table above anyway and park a `Calibration` query** — the table is the settled rule and it governs the run whatever your reading of the case. Do not hold the batch, do not ask, and above all do not write a replacement into the record. Full note: `reference/flashcard-cqi-reference.md` → *Alignment*.
+> **Never re-derive "the KIND of failure sets the band, not the COUNT."** The 30 July 2026 Edexcel IAL Physics run invented that sentence mid-run, wrote it into the record as settled calibration, and failed three sets that should have passed — one of which the same course had already passed a week earlier, manufacturing a fake cross-run conflict. It sounds more principled than counting and is simply wrong. **If the mapping seems wrong for a case, score it by the table above anyway and park a `Calibration` query** — the table is the settled rule and it governs the run whatever your reading of the case. Do not hold the batch, do not ask, and above all do not write a replacement into the record. Full note: `reference/flashcard-cqi-reference.md` → *Alignment*.
 
 > [!warning] 🤖 AI-assisted cards score by the same rubric — with more scepticism
 > **The criteria and thresholds do not change for AI-assisted content, and AI-generated content is permitted** provided the CQI is met and attribution is in place. There are no AI-detection checks. What changes is the scrutiny: a 4 or 5 on **Specific** or **Accurate** is *earned against the spec and the revision note*, never granted because the card reads fluently. Watch five failure modes:
@@ -318,75 +320,85 @@ Apply the **two-tier proofing model** from the rubric: **absolute** rules (struc
 > - **Tone that doesn't land** — fluent but not judged for a 16-year-old revising alone. Score *Tone* and *Pitch* against the student
 > - **Default command-word reading** — "Evaluate" differs by board. Score *Specific* against the board's mark scheme
 
-### 5. Report and log
+### 5. Report
 
 Chat: the score, the verdict, why it fails, and the fix list.
 
 Then **three closing lines and no more** — this is the handover, not a second report:
 
-- **Queries** — `n open, m could flip a verdict (Q4, Q9).` Nothing else. Do not summarise the tab in chat; the tab is the artefact and restating it in prose is the interruption re-entering by the back door
+- **Queries** — `n open, m could flip a verdict (Q4, Q9).` Nothing else. Do not summarise them in chat; the `Queries` section of the report is the artefact and restating it in prose is the interruption re-entering by the back door
 - **Rulings needed** — the `Ruling`-type queries by number, one clause each. Applied to the skill **only after she has ruled**, in a single pass at the end of the run
 - **Next** — the next course in the backlog, so the run can start without her composing a prompt
 
-On a **staged run this step is where the review stops.** Log stage A in full, report it, give the escalation recommendation and the unresolved theme candidates — then hand back and wait. Stage B is Leander's call (step 1a, *Staged sampling*).
+On a **staged run this step is where the review stops.** Write stage A up in full, report it, give the escalation recommendation and the unresolved theme candidates — then hand back and wait. Stage B is Leander's call (step 1a, *Staged sampling*).
 
-> [!check] ✅ Before any batch is written — has it cleared step 3a?
-> One question, asked per batch, answered before `updateGoogleSheet`: **has every spec claim in these rows been through `spec-grounder`?** If the answer is "not yet, I'll do it at the end", the batch does not get written. This is the check that stops grounding drifting to the last set of a course sweep.
+> [!check] ✅ Before any batch is written up — has it cleared step 3a?
+> One question, asked per batch, answered before you write it: **has every spec claim in these rows been through `spec-grounder`?** If the answer is "not yet, I'll do it at the end", the batch does not get written. This is the check that stops grounding drifting to the last set of a course sweep.
 
-Sheet: append the rows. Course sheets follow one shape — a **Scores** dashboard, one flat issue tab per science, a **Records** tab and a **Queries** tab. Never per-set blocks at fixed row positions; they collide the moment a fourth set lands.
+#### The report file
+
+**Write the review to a file as well as reporting it in chat.** Chat scrolls away and a context window ends; the file is what the author edits from, and what the next reviewer reads six months later. Markdown, in a **`CQI Reports`** folder in your home folder:
+
+```
+~/CQI Reports/<course> — <set ID or "N-set sample"> — <YYYY-MM-DD>.md
+```
+
+**One file per review.** A course sweep is a single file with every set in it, not one file per set, because the sample summary and the author themes are properties of the sweep and cannot be read off a pile of separate files. On escalation, stage B is appended to the stage A file — never started as a second one.
+
+The file has four sections, in this order, and they are not interchangeable: **Scores**, **Issues**, **Records**, **Queries**. Never per-set blocks with issues scattered under each set; the author needs one list to work down, and the themes only surface when every issue is in one table.
 
 **Scores** — one row per set:
 
 `Date | Science | Topic / subtopic | Set ID | Cards | Author | Status | 1 Specific | 2 Accurate | 3 Concise | 4 Correct | 5 Consistent | 6 Sensitive | 7 Structured | 8 Formatted | 9 Tone | 10 Pitch | Total | Result | Why it fails | Issues`
 
-**Science tabs** — one row per issue:
+**Issues** — one row per issue. On a multi-science course, one table per science:
 
 `Set ID | Subtopic | Card ID | Card front | Type | Criterion | Severity | Issue | Suggested fix | Action | Evidence / audit trail`
 
 **Records** — one row per non-actionable item, same eleven columns:
 
-A science tab carries **only what the author has to act on**: Severity `Critical`, `Major`, `Minor`. Everything else — `Withdrawn`, `Not flagged`, `Not scored`, `Advisory`, `Unverified`, `Superseded` — goes on a **`Records`** tab (Leander, 17 Jul: *"take all of the withdrawn, not flagged, and not scored, and put that in a separate tab to keep it clean for the author"*).
+The Issues table carries **only what the author has to act on**: Severity `Critical`, `Major`, `Minor`. Everything else — `Withdrawn`, `Not flagged`, `Not scored`, `Advisory`, `Unverified`, `Superseded` — goes under **Records** (Leander, 17 Jul: *"take all of the withdrawn, not flagged, and not scored, and put that in a separate tab to keep it clean for the author"*).
 
-These rows still have to exist. A *Not flagged* row is what stops the next reviewer re-raising a convention that was already ruled fine; a *Withdrawn* row is what stops a finding being re-litigated. They are just not the author's reading. **Records is for the next reviewer and for Leander — the science tab is for the author.**
+These rows still have to exist. A *Not flagged* row is what stops the next reviewer re-raising a convention that was already ruled fine; a *Withdrawn* row is what stops a finding being re-litigated. They are just not the author's reading. **Records is for the next reviewer and for Leander — Issues is for the author.** This is why the report file has to survive the session: a review whose only record was a chat window re-litigates everything it settled.
 
-Leave **Action** blank on every tab — it is Leander's column.
+Leave **Action** blank everywhere — it is Leander's column, not a box for the author to tick.
 
-### The Queries tab — everything you were unsure about, in one place
+### The Queries section — everything you were unsure about, in one place
 
-**One tab per course sheet, twelve columns, one row per open question.** Live sheets pre-dating 30 July 2026 do not have one — `addSheet` it on first use, header row and conditional formatting as below. That is a new tab, not a rewrite of an existing one, so it is safe on a live log. This is the tab that replaces asking. Nothing in the review waits on it: every row already carries a scored call, and the tab records what that call was and what changes if Leander overturns it.
+**One table, twelve columns, one row per open question.** This is what replaces asking. Nothing in the review waits on it: every row already carries a scored call, and the table records what that call was and what changes if Leander overturns it.
 
 `Q | Set ID | Subtopic | Card ID | Card front | Criterion | Type | The question | My call | If you overturn | Flips? | Leander's call`
 
 | Column | Contents |
 |---|---|
-| **Q** | `Q1`, `Q2`, … numbered across the **whole course sheet**, continuing through every batch and both stages. The number is how a Scores row points at a query, so it never restarts and never gets reused |
+| **Q** | `Q1`, `Q2`, … numbered across the **whole report**, continuing through every batch and both stages. The number is how a Scores row points at a query, so it never restarts and never gets reused |
 | **Type** | One of six, and only these six: `Rendering` · `Spec` · `Calibration` · `Ruling` · `Scope` · `Routing`. A closed list is what lets her clear a whole category in one decision — all four `Rendering` rows at once, rather than four separate judgements |
 | **The question** | **One sentence, ending in a question mark.** What you could not settle, not the history of trying |
 | **My call** | What you actually scored, stated flat: `Scored as not a defect.` · `Scored 8 Formatted = 3.` Never `I think perhaps…` |
 | **If you overturn** | The concrete consequence: `8 Formatted 4→3.` Blank is not allowed — if overturning changes nothing, the row is not a query, it is a *Not flagged* record |
 | **Flips?** | `YES` where overturning moves the set between PASS and FAIL, otherwise blank. **This is the only column that has to catch the eye** |
-| **Leander's call** | Hers. Leave it blank, exactly like **Action** on the other tabs |
+| **Leander's call** | Hers. Leave it blank, exactly like **Action** in the other tables |
 
-> [!check] 🎯 The tab is designed to be **ignored safely**
-> A query she never reads leaves the review sound: the score stands, the fix list stands, the author has already been given work that does not depend on her answer. **Write every row so that no answer is a legitimate answer.** That is the whole reason this is a tab and not a conversation — it makes her attention optional rather than load-bearing.
+Send her the section — the file, or the table pasted into a message — once the review is closed. Not before, and not one query at a time.
+
+> [!check] 🎯 The section is designed to be **ignored safely**
+> A query she never reads leaves the review sound: the score stands, the fix list stands, the author has already been given work that does not depend on her answer. **Write every row so that no answer is a legitimate answer.** That is the whole reason this is a table and not a conversation — it makes her attention optional rather than load-bearing.
 >
-> It follows that a row that *cannot* be ignored is not a query at all. If the review genuinely cannot proceed without her — the four permitted stops at the top of this skill — stop; do not disguise a blocker as a parked row.
+> It follows that a row that *cannot* be ignored is not a query at all. If the review genuinely cannot proceed without her — the three permitted stops at the top of this skill — stop; do not disguise a blocker as a parked row.
 
-**What must never land here.** The tab is uncertainty, not overflow. A confirmed defect goes on the science tab however awkward it is to word. A withdrawn or unverified finding goes on `Records` — an UNVERIFIED spec claim gets **both**, a `Records` row for the audit trail and a `Queries` row for the decision, because they have different readers. And a query is never a substitute for the grounder: **park what `spec-grounder` could not settle, never what you did not send it.**
+**What must never land here.** This section is uncertainty, not overflow. A confirmed defect goes under Issues however awkward it is to word. A withdrawn or unverified finding goes under `Records` — an UNVERIFIED spec claim gets **both**, a `Records` row for the audit trail and a `Queries` row for the decision, because they have different readers. And a query is never a substitute for the grounder: **park what `spec-grounder` could not settle, never what you did not send it.**
 
-**Marking the Scores row provisional.** Column **S** stays `PASS` / `FAIL` and nothing else — `S2`'s `COUNTIF` is an exact-match gate, and decorating a verdict cell silently breaks the sample verdict. The marker goes in **`T`** (*Why it fails*), which is empty on a passing row and is already the wide prose column:
+**Marking a Scores row provisional.** *Result* stays `PASS` / `FAIL` and nothing else — the sample verdict is an exact match on those two words, and decorating the cell silently breaks it. The marker goes in *Why it fails*, which is empty on a passing row and is already the wide prose column:
 
 ```
 ⚠ PROVISIONAL — Q4 could take 2 Accurate to 3 and FAIL this set.
 ```
 
-On a failing row it goes **after** the fail reason, not instead of it. Only `Flips? = YES` queries earn a marker: a query that cannot change the verdict is on the tab and nowhere else, or every row on Scores ends up caveated and the marker stops meaning anything.
+On a failing row it goes **after** the fail reason, not instead of it. Only `Flips? = YES` queries earn a marker: a query that cannot change the verdict lives in the Queries table and nowhere else, or every row under Scores ends up caveated and the marker stops meaning anything.
 
-Where any open query flips *any* set, `T2` carries the sample-level version — `⚠ SAMPLE VERDICT PROVISIONAL — Q4, Q9 open; either could fail a set.` `S2` itself is untouched. It reports the sample as scored, which is what it is for.
+Where any open query flips *any* set, the sample summary carries the sample-level version — `⚠ SAMPLE VERDICT PROVISIONAL — Q4, Q9 open; either could fail a set.` The verdict itself is untouched. It reports the sample as scored, which is what it is for.
 
-**Sort every batch before you append: worst first.** Within the rows you are about to write, order by Severity — `Critical`, `Major`, `Minor`. The author reads top-down and should hit the worst of it first. (The records used to sit at the bottom of this same tab; they now have their own, which is a stronger version of the same rule — a withdrawn row that sits anywhere near a Critical one is a row that gets read as a task.)
-
-This is a **write-time sort** and that is the only kind available. Sorting a batch is free. Re-sorting a tab that already has rows is not: appended rows land below what is there, so on a course sheet the older records sit mid-table, and physically moving them means reading the whole tab back and rewriting it — the read-filter-rewrite that is banned on a live log, because `getGoogleSheetContent` returns rows comma-joined and reconstructing cell boundaries is guesswork. **Never rewrite a live tab to tidy its order.** If Leander wants the whole tab grouped, it is a two-click UI job: select the range, Data → Sort range → by Severity. Say so; do not do it for her.
+**Sort every batch as you write it: worst first.** Order by Severity — `Critical`, `Major`, `Minor`. The author reads top-down and should hit the worst of it first. (The records used to sit at the bottom of this same table; they now have their own section, which is a stronger version of the same rule — a withdrawn row that sits anywhere near a Critical one is a row that gets read as a task.)
 
 **Issue and Suggested fix are for the author. Evidence is not.** These columns have different readers, and collapsing them is what makes a fix list unreadable:
 
@@ -401,59 +413,23 @@ This is a **write-time sort** and that is the only kind available. Sorting a bat
 Two rules that follow:
 
 - **Withdrawn / Not flagged / Superseded rows** are records, not tasks. Their Issue is one line (`WITHDRAWN — B1.1 is entirely Core, so there is no Extended content for a tier marker to mark.`), their fix is `No action. Do not re-raise.`, and the whole case sits in Evidence.
-- **Never put a score, a criterion total, or a comparison with another set in Suggested fix.** That is reviewer bookkeeping. It belongs in Evidence or on the Scores tab.
+- **Never put a score, a criterion total, or a comparison with another set in Suggested fix.** That is reviewer bookkeeping. It belongs in Evidence or under Scores.
 
-Conditional formatting is specified exactly under *Sheet formatting* below — use those rules verbatim rather than approximating them. `updateGoogleSheet` rejects numeric cell values — write **every cell as a string**, but send score writes with `valueInputOption: "USER_ENTERED"` so they land as numbers rather than text (see *Sample average* below — `RAW` breaks the averages silently).
+### The sample summary — one line above the sets
 
-### The two average rows — rows 2 and 3, above the sets
+A sweep gets a summary line directly under the Scores header, before any set row, carrying the same columns as the sets themselves so it reads straight down: **`SAMPLE — N sets, X% of Y subtopics`**, the mean of each criterion, the mean total, and the sample verdict.
 
-**Scores** carries two summary rows directly under the header, before any set row:
+**`X%` is the stage actually completed, never the stage intended.** A staged run that stops after stage A says `5%` and the set count it really scored. Escalating restates it as the combined `10%` once stage B is appended. Never pre-label a stage A report `10%` on the expectation that stage B will follow.
 
-| Row | Label | What it is |
-|---|---|---|
-| **2** | `SAMPLE AVERAGE — N sets, X% of Y subtopics` | the **scored** result — live formulas |
-| **3** | *(empty — reserved)* | 📁 was `POST-EDITS AVERAGE`, **retired 31 Jul 2026** |
+> [!danger] 🚦 The verdict is a gate, not an average — any single set failing fails the sample
+> The mean and the verdict are two different statements and **they must never be reconciled.** The mean says how the sample scored; the verdict says whether it clears. A set at 30/50 among nine at 50/50 averages 48 — a mean that reads like a pass while a set is broken. **Never compute the sample verdict from the mean**, and never soften it to a majority or a threshold: a CQI clears content for publication, and one set needing revision means the sample needs revision.
 
-> [!danger] 🚦 Row 3 is retired — estimates are gone, ruled 31 July 2026
-> **Do not write a `POST-EDITS AVERAGE` row on a new sheet.** A CQI reports the scored result and a binary verdict; it does not project a post-fix score. **Leave row 3 empty** rather than re-indexing — the freeze at `A4`, every `H4:H` range and every formatting range in this skill stay exactly as written, and existing sheets keep working untouched. On an **existing** sheet, leave the row 3 that is already there alone: it is a record of what was modelled at the time.
->
-> If the size of an editorial lift is wanted, it has to be **measured** by re-scoring after the edits land — never modelled from findings. See the Definitions on `QA Logs/CQI Scorecard.md`, which is the authority.
-
-**Set IDs start at row 4.** Row 2 uses the identical column layout as the set rows — same Date, Science, Author, Status, same ten criterion columns, same Total and Result. That is the point: the summary reads down the same columns as the data it summarises, and nothing needs re-aligning by eye. Not "adjusted", not "post-edit".
-
-Freeze at **`A4`** so the header and *both* average rows stay visible while scrolling the sets.
-
-Write it once, when the sheet is created, with `updateGoogleSheet` and **`valueInputOption: "USER_ENTERED"`** — the default `RAW` stores a formula as literal text and the row silently reads `=AVERAGE(H3:H)` forever.
-
-**`USER_ENTERED` is also required for the score rows themselves, and this overrides the `RAW` instruction above.** `data` still takes strings — that is the MCP's schema, and it is why the every-cell-a-string rule exists — but `RAW` stores `"44"` as *text*, and **`AVERAGE`, `COUNT` and `MIN` skip text silently**. Under `RAW` the average row returns `#DIV/0!` or `0` and nothing errors. `USER_ENTERED` parses `"44"` back into the number 44 and the formulas work. Pass strings, but always with `USER_ENTERED`, on any write that lands in a numeric column. Diagnostic after writing: `=SUMPRODUCT(--ISTEXT(H3:R100))` must return `0`.
-
-> [!warning] ⚠️ Two more traps in the same tool
-> **`updateGoogleSheet`'s parameter is `data`, not `values`** — a 2D array of strings. The wrong name returns `Error: Required`.
->
-> **There is no delete-row primitive for Sheets.** `deleteRange` is Docs-only, `deleteSheet` drops a whole tab, and `appendSpreadsheetRows` only appends. The obvious workaround — read, filter, write back — is unsafe: `getGoogleSheetContent` returns each row as one **comma-joined string** and CQI cells are full of commas, so re-splitting is guesswork. Hand any row deletion to Leander as a by-hand job, bottom-up per tab so the row numbers stay valid. Reads also renumber from 1 rather than from the range offset — `Physics!A6:K57` calls sheet row 6 "Row 1", so map the offset before trusting a row number.
-
-| Cell | Contents |
-|---|---|
-| `C2` | `SAMPLE AVERAGE — N sets, X% of Y subtopics` — the **only** label cell a later stage rewrites now that row 3 is retired |
-| `E2` | `=SUM(E4:E)` — total cards sampled |
-| `H2:Q2` | `=AVERAGE(H4:H)` … `=AVERAGE(Q4:Q)`, one per criterion |
-| `R2` | `=AVERAGE(R4:R)` — mean total out of 50 |
-| `S2` | `=IF(COUNTA(S4:S)=0,"",IF(COUNTIF(S4:S,"FAIL")>0,"FAIL","PASS"))` |
-
-**`X%` is the stage actually completed, never the stage intended.** A staged run that stops after stage A writes `5%` and the set count it really scored. Escalating rewrites `C2` to the combined `10%` figure once stage B is appended — that label cell is the *only* thing a later stage rewrites. Never pre-label a stage A sheet `10%` on the expectation that stage B will follow.
-
-**Every range still starts at row 4, not row 3** — this did not change when row 3 was retired. On an **older sheet** row 3 holds the projection, in the same columns, so an `H3:H` range silently averages the model in with the data: the single worst failure this layout can produce, because it corrupts the scored number with an estimate and nothing errors. On a new sheet row 3 is empty and the rule costs nothing. Keep it either way.
-
-Because the formulas are open-ended (`H4:H`, not `H4:H16`), every append updates the average with no maintenance — and the mean can never lag the rows the way a typed figure does.
-
-**S2 is a gate, not an average — any single set failing fails the sample.** This is deliberate and the two cells must not be reconciled. R2 says how the sample scored; S2 says whether it clears. A set at 30/50 among nine at 50/50 averages 48 — a mean that reads like a pass while a set is broken. Never compute the sample verdict from R2, and never soften S2 to a majority or a threshold: a CQI clears content for publication, and one set needing revision means the sample needs revision.
-
-Number formatting on `H2:R2` — one decimal place, via `formatGoogleSheetNumbers`. The criterion and Result conditional-formatting ranges start at row 2, so the average row colours on the same rules as the sets; that is intended, and it is what makes a sagging mean visible.
+On a multi-science course, report **per science as well as overall**, and apply the gate per science: one failing set fails that science.
 
 ### 📁 Estimated corrected score — retired 31 July 2026
 
 > [!danger] 🚦 Do not produce one. Do not offer one.
-> **A CQI reports the scored result and a binary verdict — ✅ PASS or ❌ FAIL.** No estimated corrected score, no `POST-EDITS AVERAGE` row, no *est. after* column on the Scorecard. Leander's ruling, 31 July 2026. Any older instruction — in a course page, a project page, a handover, or an earlier version of this skill — telling you to project a post-fix score is **dead**.
+> **A CQI reports the scored result and a binary verdict — ✅ PASS or ❌ FAIL.** No estimated corrected score, no `POST-EDITS AVERAGE` row, no *est. after* column. Leander's ruling, 31 July 2026. Any older instruction — in a course page, a project page, a handover, or an earlier version of this skill — telling you to project a post-fix score is **dead**.
 >
 > **If the size of an editorial lift is wanted, it must be measured** by re-scoring the sets after the edits land. Never modelled from the findings.
 
@@ -461,118 +437,32 @@ Number formatting on `H2:R2` — one decimal place, via `formatGoogleSheetNumber
 
 The projection ran on blanket assumptions — all Criticals to 5, all Standards to a floor of 4 — because the **Action** column that was meant to record what authors actually fixed was never filled in (too much work for the return; settled, not an open problem — **do not propose reinstating it**). But pass is total ≥43 with all Criticals at 5 and every Standard at ≥4, and 3×5 + 7×4 = **43** exactly. **Under those assumptions the arithmetic could not produce a fail**: every set cleared by construction, so the projection discovered nothing. It measured the assumptions, not the content.
 
-That identity still matters, and it outlives the estimate. Because 43 is precisely the floor of the criterion gates, **the total never does independent work** — no set can clear the gates and miss 43. `R2` describes; `S2` decides. Same point as *S2 is a gate, not an average* above, arrived at from the arithmetic.
+That identity still matters, and it outlives the estimate. Because 43 is precisely the floor of the criterion gates, **the total never does independent work** — no set can clear the gates and miss 43. The mean describes; the verdict decides. Same point as *the verdict is a gate, not an average* above, arrived at from the arithmetic.
 
-**The verdict is what you report instead**, and it is mechanical: ✅ PASS only if every set passed, ❌ FAIL if any set failed — which is exactly what `S2` already computes. Give the mean **and the pass count together, always**; a high mean beside a ❌ FAIL is a normal shape, not a contradiction, and the two are never reconciled. The controlled pair, same author and same week: Edexcel A Level Physics 9PH0 scored **48.70** with 17 of 19 passing; CIE IAL Physics 9702 scored **47.95** with 8 of 20. The means sit 0.75 apart and the pass rates 49 points apart, because the mechanism is **density, not severity** — slips that land on Formatted 4 in one course cluster in the other and push the band to 3, and a Standard below 4 fails the set outright. 9702 had no Critical below 5 anywhere and still failed 12 sets of 20. **Every reported figure is a pair** — `47.95 / 50, 8 of 20 passing`, never the first alone — and courses are compared on pass count, because ranking by mean orders them almost at random.
+**The verdict is what you report instead**, and it is mechanical: ✅ PASS only if every set passed, ❌ FAIL if any set failed. Give the mean **and the pass count together, always**; a high mean beside a ❌ FAIL is a normal shape, not a contradiction, and the two are never reconciled. The controlled pair, same author and same week: Edexcel A Level Physics 9PH0 scored **48.70** with 17 of 19 passing; CIE IAL Physics 9702 scored **47.95** with 8 of 20. The means sit 0.75 apart and the pass rates 49 points apart, because the mechanism is **density, not severity** — slips that land on Formatted 4 in one course cluster in the other and push the band to 3, and a Standard below 4 fails the set outright. 9702 had no Critical below 5 anywhere and still failed 12 sets of 20. **Every reported figure is a pair** — `47.95 / 50, 8 of 20 passing`, never the first alone — and courses are compared on pass count, because ranking by mean orders them almost at random.
 
-On a multi-science course sheet, report **per science as well as overall**, and apply the S2 gate per science: one failing set fails that science.
-
-### Sheet formatting
-
-This is the house standard, taken off the live 4XPH sheet Leander signed off on 17 Jul. Reproduce it; do not improvise a variation.
-
-**Fills — the four colours, and nothing else:**
-
-| Hex | Meaning |
-|---|---|
-| `#D1EFD1` | green — pass |
-| `#F4CCCC` | red — fail (whole-row) |
-| `#FFC6C6` | red — fail (single cell) |
-| `#FFE5B2` | amber — below 5 but not failing |
-
-**Conditional formatting — Scores** (`addGoogleSheetConditionalFormat`):
-
-| Range | Type | Rule | Fill |
-|---|---|---|---|
-| `A2:U2` | expression | `$S$2="PASS"` | `#D1EFD1` |
-| `A2:U2` | expression | `$S$2="FAIL"` | `#F4CCCC` |
-| `S2:S100` | containsText | `FAIL` | `#FFC6C6` |
-| `H2:Q100` | expression | `AND(LEN(H2)>0,VALUE(H2)<4)` | `#FFC6C6` |
-| `H2:Q100` | expression | `AND(LEN(H2)>0,VALUE(H2)<5,VALUE(H2)>=4)` | `#FFE5B2` |
-
-The first two are **absolute on `$S$2`** — they paint the whole SAMPLE AVERAGE row off its own verdict cell. Keep them absolute and keep them keyed to row 2. A relative reference, or a key left pointing at whatever row the average happened to occupy when the rule was written, strands the rule on a set row the first time anyone rearranges the sheet.
-
-The criterion bands run to row 100 and so cover the average rows too. **That is intended** — an average of 3.0 should look as red as a score of 3, and a sagging mean is meant to be visible at a glance.
-
-`VALUE()` is what makes the bands work on cells written as strings. Do not drop it.
-
-**Conditional formatting — science tabs:**
-
-| Range | Type | Rule | Fill |
-|---|---|---|---|
-| `G2:G100` | containsText | `Major` | `#FFE5B2` |
-| `G2:G100` | containsText | `Critical` | `#FFC6C6` |
-
-**Conditional formatting — Queries:**
-
-| Range | Type | Rule | Fill |
-|---|---|---|---|
-| `A2:L100` | expression | `$K2="YES"` | `#FFE5B2` |
-| `A2:L100` | expression | `LEN($L2)>0` | `#D1EFD1` |
-
-Amber on a whole row is the **`Flips?`** column doing its job — it is the one thing on this tab that has to be seen without reading. Green is a row Leander has answered, so the tab visibly empties as she works down it. Note both rules are keyed to `$K2` / `$L2` — **column-absolute, row-relative**, so each row paints off its own verdict; a fully absolute key paints the entire tab off row 2.
-
-Nothing on this tab is red. A query is not a defect, and colouring it like one is what would make her feel she has to clear the tab.
-
-**Bold:** header row 1 only. Row 2 is *not* bold — the CF fill already carries it. (Row 3 is retired and empty on a new sheet; on an older sheet it is bold, and stays bold.)
-
-**Freeze:** `A4` on Scores (header + both averages), `A2` on every other tab.
-
-**Column widths** on Scores, where they differ from default: `B` 9 · `C` 20 · `D` 23 · `E` 8 · `H:Q` ~7–9 · `S` 8 · `T` 59. The criterion columns are deliberately narrow — ten of them have to sit on screen at once — and `T` is wide because *Why it fails* is the only column anyone reads in prose.
-
-**Number format** on `H2:R3` — one decimal place, via `formatGoogleSheetNumbers`. The set rows below are integers and take no format.
-
-All text on every tab is **Plus Jakarta Sans** — the full Google Fonts name for what Leander calls "+Jakarta Sans". Apply with `formatGoogleSheetText` over the used range of each tab (`A1:U1000` on Scores, `A1:K1000` on a science tab or `Records`, `A1:L1000` on `Queries`), one call per tab:
-
-```
-formatGoogleSheetText(spreadsheetId, range: "Scores!A1:U1000", fontFamily: "Plus Jakarta Sans")
-```
-
-Then the header row, **bold**, one call per tab: `formatGoogleSheetText(range: "Scores!A1:U1", bold: true)`. Do the font first — a later font call over the whole range does not clear bold, but do not rely on ordering you have not checked.
-
-**Freezing cannot be done from here, and neither can column widths.** The MCP exposes no `updateSheetProperties` / `gridProperties` tool, so `frozenRowCount` and column sizing are both unreachable — the same gap as the missing `insertDimension`. When you hand the sheet over, tell Leander what to set: **View → Freeze → 3 rows** on Scores, **1 row** on every other tab, and drag `T` wide. Do not claim the sheet is frozen and do not burn calls hunting for a tool that is not there.
-
-Live course sheet — CIE IGCSE Co-ordinated Sciences (0654): `12JntLxp8mhvWExLh-SKTQEXfdXOFBX9j-3S8jV4DPuY` (in `CQI Scorecards / Combined Science`)
-
-### Where a new course sheet lives
-
-Appending to a live course sheet needs none of this. But when a course has no sheet yet, pass `parentFolderId` to `createGoogleSheet` — it defaults to My Drive root, which is not where these belong. The home is `DE Science / CQI Scorecards /`, one folder per subject:
-
-| Subject | Folder ID |
-|---|---|
-| Sociology | `1X_xDLLrYm-25ojJB2bNHsWUAs7PtMCih` |
-| Psychology | `1ooVqdeRiRwSQsoc4GscBqyce-AEGX1it` |
-| Physics | `1TJP3LGIRfVKRBJOLPYfcOslBV14aAike` |
-| Biology | `1v5dkWdkpoMR4HxzeSmE4kty07DRo9Q7C` |
-| Chemistry | `1_4m93ETHcNb9mg1aucO7k8WAEucB2wlE` |
-| Combined Science | `1JXTS8Nu6KE375DVNnjzhvZPB7uTTen25` |
-
-**Route on the course, not on the science being reviewed.** A Combined Science, Co-ordinated Sciences, Trilogy or Double Award course goes to **Combined Science** even when the set is entirely one science — this is why 0654 sits there despite its per-science issue tabs. Only a single-science course files under Biology, Chemistry or Physics.
-
-Where the course fits none of the six, say so and ask rather than inventing a folder or defaulting to root.
-
-**Then the vault — if you have one.** The Development Editor Obsidian vault is Leander's, and most of the Squad does not have it. **The Google Sheet is the record of a review; the vault is a second index on top of it, not a second copy.** If you have the DE vault, log per the rubric's **📝 Where results get logged**: a section on `QA Logs/<board-level-subject>.md`, rows in `QA Logs/QA Log.md`, and — where a course is checked science by science — that science's row of the **convention profile** table filled in as you go, so the cross-science comparison is read off the table rather than re-derived. If you do not have the vault, **the sheet is your deliverable and the review is complete without the vault step**: say in the closing report that the vault index was not updated, so whoever holds it can mirror the rows. Never treat a missing vault as a reason to withhold the sheet.
+**Then the vault — if you have one.** The Development Editor Obsidian vault is Leander's, and most of the Squad does not have it. **The report file is the record of a review; the vault is a second index on top of it, not a second copy.** If you have the DE vault, log per the rubric's **📝 Where results get logged**: a section on `QA Logs/<board-level-subject>.md`, rows in `QA Logs/QA Log.md`, and — where a course is checked science by science — that science's row of the **convention profile** table filled in as you go, so the cross-science comparison is read off the table rather than re-derived. If you do not have the vault, **the report file is your deliverable and the review is complete without the vault step**: say in the closing report that the vault index was not updated, so whoever holds it can mirror the rows. Never treat a missing vault as a reason to withhold the report.
 
 ### 6. Verify before you hand it over — `cqi-verifier` (mandatory gate)
 
-Before the review reaches Leander, hand the whole thing — set IDs, scores, findings, sheet ID and range, and the vault page path if you kept one — to the **`cqi-verifier`** agent. It is adversarial by design: its job is to find the reasons the review is wrong, not to confirm it looks fine.
+Before the review is handed over, give the whole thing — set IDs, scores, findings, the path to the report file, and the vault page path if you kept one — to the **`cqi-verifier`** agent. It is adversarial by design: its job is to find the reasons the review is wrong, not to confirm it looks fine.
 
-It checks that every finding rests on evidence of the **right kind** (syllabus for scope, untruth for factual, *rendered* output for rendering), that the scores follow the rubric's **qualitative bands rather than arithmetic deduction**, that the pass rule was applied correctly, that withdrawn and unverified findings are handled honestly, that the sheet and vault agree (where a vault page exists — tell it plainly if one does not, rather than letting it hunt), and that **nothing was written to Cobalt**.
+It checks that every finding rests on evidence of the **right kind** (syllabus for scope, untruth for factual, *rendered* output for rendering), that the scores follow the rubric's **qualitative bands rather than arithmetic deduction**, that the pass rule was applied correctly, that withdrawn and unverified findings are handled honestly, that the report and the vault agree (where a vault page exists — tell it plainly if one does not, rather than letting it hunt), and that **nothing was written to Cobalt**.
 
-**Brief it to check the grounding actually happened, and happened in time.** Every spec claim on the sheet carries a `spec-grounder` outcome; the notebook was queried before the first batch was scored, not after the last; and where the review ran fenced for want of a notebook (step 1b), the report says so by name rather than simply containing no spec claims. A review with no spec findings and no explanation is indistinguishable from one where the gate was skipped.
+**Brief it to check the grounding actually happened, and happened in time.** Every spec claim in the report carries a `spec-grounder` outcome; the notebook was queried before the first batch was scored, not after the last; and where the review ran fenced for want of a notebook (step 1b), the report says so by name rather than simply containing no spec claims. A review with no spec findings and no explanation is indistinguishable from one where the gate was skipped.
 
 **Brief it on the parked queries too.** Four checks, all of which catch the new failure modes rather than the old ones:
 
 - **Every set is scored.** No criterion left open pending a ruling, no verdict deferred. A parked query never suspends a score
-- **Every `Flips? = YES` query has its `⚠ PROVISIONAL` marker in `T`** on that set's Scores row — and no marker exists without a query behind it
-- **Column `S` is clean.** `PASS` / `FAIL` and nothing else, on every row including row 2. A decorated verdict cell is a broken `S2`
-- **Nothing was parked that should have been a finding.** A confirmed defect on `Queries` is the tab being used to avoid a hard row, and it hides work from the author. Equally: nothing was *asked* that should have been parked — a review that came back with questions in it did not follow the skill
+- **Every `Flips? = YES` query has its `⚠ PROVISIONAL` marker in *Why it fails*** on that set's Scores row — and no marker exists without a query behind it
+- **The *Result* column is clean.** `PASS` / `FAIL` and nothing else, on every row including the sample summary. A decorated verdict breaks the gate
+- **Nothing was parked that should have been a finding.** A confirmed defect under `Queries` is the section being used to avoid a hard row, and it hides work from the author. Equally: nothing was *asked* that should have been parked — a review that came back with questions in it did not follow the skill
 
 It returns **SAFE TO SEND**, **CORRECTIONS NEEDED** or **DO NOT SEND**. Act on the corrections, then report. If it says DO NOT SEND, do not send.
 
 **On a staged run it gates every stage, because every stage reaches Leander.** Stage A is not a draft — she reads it, scores hang off it and she decides the course's fate from it, so it clears the verifier before she sees it, exactly like a flat review. `spec-grounder` (step 3a) likewise runs within each stage; findings cannot be scored unadjudicated.
 
-The saving on escalation is in **scope, not omission**: brief the stage B pass on stage B's findings plus the *combined* sheet state — labels, averages, and the S2 gate now read across every row — and tell it stage A's findings were already cleared. Re-adjudicating stage A wastes the pass; skipping the combined-state check is how a sheet ends up labelled 5% with 10% of the rows in it.
+The saving on escalation is in **scope, not omission**: brief the stage B pass on stage B's findings plus the *combined* state of the report — the header, the means, and the sample verdict now read across every row — and tell it stage A's findings were already cleared. Re-adjudicating stage A wastes the pass; skipping the combined-state check is how a report ends up headed 5% with 10% of the rows in it.
 
 ### 7. Feedback themes — the part that scales
 

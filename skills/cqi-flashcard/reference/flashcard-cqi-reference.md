@@ -155,7 +155,7 @@ A `{align=center}` on a back is a defect. A back *without* alignment markup is c
 >
 > **Both steps were wrong, because words were never the measure.** Re-scored against 83 characters, three of that set's four one-line fronts are missing required centring (64, 75, 78 chars) and only one of four carries it — inconsistent application, Formatted band **3**, and the set **FAILs** after all. The invented number produced a false FAIL, then a false PASS.
 >
-> The lesson outlives the number: **when a criterion is qualitative, do not manufacture a quantity for it.** Score the finding conservatively, park it on the `Queries` tab and carry on — never invent a measure to close the gap. An invented threshold looks like rigour and behaves like a coin toss.
+> The lesson outlives the number: **when a criterion is qualitative, do not manufacture a quantity for it.** Score the finding conservatively, park it in the report's `Queries` section and carry on — never invent a measure to close the gap. An invented threshold looks like rigour and behaves like a coin toss.
 
 > [!check] 🎯 The alignment band is set by the **count** of fronts out of step *(Leander, 30 July 2026)*
 > The rules above say *whether* a front is out of step. This says what the set scores for it. A **front** is the question side of a card — backs are never in scope. A front is **out of step** when it breaks the rule either way: a one-line front missing `{align=center}`, or a wrapping/`fill_in_the_blanks` front wrongly carrying it.
@@ -304,7 +304,7 @@ The unit of scoring is the **set**. Draw evidence from individual cards.
 
 ### 🧮 Per-science averages and the science-level verdict — *(editor, 16 July 2026)*
 
-Every review reports, **per science** (biology, chemistry, physics), four numbers side by side on the `Scores` tab:
+Every review reports, **per science** (biology, chemistry, physics), four numbers side by side in the report's `Scores` section:
 
 | Column | What it is |
 |---|---|
@@ -319,22 +319,9 @@ Every review reports, **per science** (biology, chemistry, physics), four number
 >
 > Always show **Average, Pass rate and Verdict together**. The average tells you *how far off* the course is; only the pass rate and verdict tell you *whether it ships*.
 
-**Per-set `Pass?` column (`Scores!S`)** — the science verdict is meaningless unless the rubric is visible per row. One formula per set row, mirroring the rubric exactly:
+**Per-set `Result`** — the science verdict is meaningless unless the rubric is visible per row. Every set row carries its own PASS or FAIL, worked out the same way every time: **all three Criticals at 5, every one of the seven Standards at ≥ 4, and a total of ≥ 43**. All three conditions, not the best two. A row with no scores yet carries no result — leave it blank rather than guessing.
 
-```
-=IF(COUNT(H2:R2)<11,"",IF(AND(H2=5,I2=5,J2=5,MIN(K2:Q2)>=4,R2>=43),"PASS","FAIL"))
-```
-
-`H:J` are the three Criticals (all must be 5), `K:Q` the seven Standards (min ≥ 4), `R` the total (≥ 43). The `COUNT(...)<11` guard blanks legend and notes rows, so the column can run the full height of the sheet.
-
-Summary block lives to the **right** of the data (`U1:Z5`) on full-column `COUNTIFS`/`AVERAGEIFS`, never below it — appended rows must flow into the figures automatically and must never collide with a fixed block. The log is **append-only**: a Scores dashboard plus flat one-row-per-issue tabs, never per-set blocks at fixed row positions.
-
-> [!warning] ⚠️ Write scores with `valueInputOption: "USER_ENTERED"` — RAW makes them text
-> `updateGoogleSheet` defaults to **RAW**, which stores `44` as the *string* `"44"`. `COUNT`, `AVERAGEIFS` and `MIN` **silently skip text**, so a sheet with RAW-written scores averages only the numeric subset and reports it without complaint — no error, no warning, just a wrong number.
->
-> This had already happened on the CIE 0654 sheet: **17 of 28 set rows were text**, and the first per-science averages came out over 14 rows instead of 28 (Chemistry read 41.0 across 3 sets, not 9). Caught only because the `Pass?` column came back blank on rows that plainly had scores.
->
-> **Check before trusting any figure on a CQI sheet:** `=SUMPRODUCT(--ISTEXT(H2:R2))` must be `0`. If it isn't, rewrite the score rows with `USER_ENTERED` and re-read the summary.
+The report is **append-only**: a Scores section listing one row per set, then flat one-row-per-issue sections beneath it. Never per-set blocks — a reader has to be able to sort and count the rows.
 
 ### Critical
 
@@ -508,7 +495,7 @@ A set that is uniformly old-style scores **5** on Consistent. That is the correc
 ## 📝 Where results get logged
 
 > [!important] 🗂️ QA Logs, never Projects
-> A flashcard CQI is **oversight output** — evidence of applying the bar. It belongs in the QA log and its per-course pages, **not** in `Projects/`, which is content-build R&D. Do not create a project page for a CQI run. (Both are Obsidian pages in the Development Editor vault; if you do not have the vault, the Google Sheet is the record and there is nothing further to file.)
+> A flashcard CQI is **oversight output** — evidence of applying the bar. It belongs in the QA log and its per-course pages, **not** in `Projects/`, which is content-build R&D. Do not create a project page for a CQI run. (Both are Obsidian pages in the Development Editor vault; if you do not have the vault, the report file is the record and there is nothing further to file.)
 
 Every set scored is written to **two** places:
 
