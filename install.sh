@@ -25,4 +25,4 @@ install_into skills "$HOME/.claude/skills"
 install_into agents "$HOME/.claude/agents"
 
 echo
-echo "Done. Restart Claude Code, then run /cqi-flashcard"
+echo "Done. Restart Claude Code, then run /cqi-flashcard or /dream"
