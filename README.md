@@ -118,9 +118,11 @@ nothing yet for it to read or add to — ask Leander to walk you through startin
 ./setup/dream/setup-automation.sh
 ```
 
-That schedules one run a day, at login and again at 07:30, so the report is waiting when
-you start. It prints an optional settings snippet at the end that also catches the first
-Claude session of the day. Skip the whole step if you would rather type `/dream` yourself.
+One run a day, triggered by whichever comes first: logging in, 07:30, or your first
+Claude session of the day. That last one is what makes the report already be there when
+you sit down. The script backs up `~/.claude/settings.json` before touching it, and does
+nothing if you have already run it. Restart Claude Code afterwards. Skip the whole step
+if you would rather type `/dream` yourself.
 
 Two things worth knowing. It reads **all** your Claude transcripts for the window — every
 project, work and not — so the report can quote anything you typed. And a run costs

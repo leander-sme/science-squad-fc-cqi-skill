@@ -63,18 +63,46 @@ PLISTEOF
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
 
-echo "Installed $LABEL — runs at login and 07:30 daily."
-echo
-echo "Optional, to also catch the first Claude session of the day, add this to the"
-echo "\"hooks\" block of ~/.claude/settings.json:"
-cat <<'HOOKEOF'
+# Add the SessionStart hook, so the first Claude session of the day also triggers a
+# run. Without this you only get 07:30 and login. Backs up settings.json first, and
+# does nothing if the hook is already there.
+python3 - <<'PYEOF'
+import json, os, shutil
 
-  "SessionStart": [
-    {
-      "matcher": "startup",
-      "hooks": [
-        { "type": "command", "command": "bash ~/.claude/dream/dream-trigger.sh", "timeout": 10 }
-      ]
-    }
-  ]
-HOOKEOF
+path = os.path.expanduser('~/.claude/settings.json')
+cmd = 'bash ~/.claude/dream/dream-trigger.sh'
+
+settings = {}
+if os.path.exists(path):
+    with open(path) as f:
+        text = f.read().strip()
+    if text:
+        try:
+            settings = json.loads(text)
+        except ValueError:
+            print('! ~/.claude/settings.json is not valid JSON — left alone.')
+            print('  Add this hook by hand:', cmd)
+            raise SystemExit(0)
+    shutil.copy(path, path + '.bak')
+
+starts = settings.setdefault('hooks', {}).setdefault('SessionStart', [])
+if any(cmd in json.dumps(entry) for entry in starts):
+    print('SessionStart hook already present — left as it is.')
+    raise SystemExit(0)
+
+startup = next((e for e in starts if e.get('matcher') == 'startup'), None)
+if startup is None:
+    startup = {'matcher': 'startup', 'hooks': []}
+    starts.append(startup)
+startup.setdefault('hooks', []).append({'type': 'command', 'command': cmd, 'timeout': 10})
+
+with open(path, 'w') as f:
+    json.dump(settings, f, indent=2)
+    f.write('\n')
+print('Added the SessionStart hook to ~/.claude/settings.json (backup: settings.json.bak).')
+PYEOF
+
+echo
+echo "Installed $LABEL — a dream run now happens at login, at 07:30, and on the first"
+echo "Claude session of the day, whichever comes first. One run per day either way."
+echo "Restart Claude Code for the session hook to take effect."
